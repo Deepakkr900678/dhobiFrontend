@@ -20,8 +20,8 @@ const AdminLayout = () => {
     { path: '/admin/vendors', label: 'Vendor Management', icon: <Users size={20} /> },
     { path: '/admin/users', label: 'User Management', icon: <User size={20} /> },
     { path: '/admin/orders', label: 'Order Management', icon: <ShoppingBag size={20} /> },
-    { path: '/admin/revenue', label: 'Revenue & Payments', icon: <DollarSign size={20} /> },
-    { path: '/admin/reports', label: 'Reports & Insights', icon: <BarChart2 size={20} /> },
+    // { path: '/admin/revenue', label: 'Revenue & Payments', icon: <DollarSign size={20} /> },
+    // { path: '/admin/reports', label: 'Reports & Insights', icon: <BarChart2 size={20} /> },
   ];
   
   const isActive = (path) => {
