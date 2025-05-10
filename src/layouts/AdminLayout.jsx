@@ -20,8 +20,8 @@ const AdminLayout = () => {
     { path: '/admin/vendors', label: 'Vendor Management', icon: <Users size={20} /> },
     { path: '/admin/users', label: 'User Management', icon: <User size={20} /> },
     { path: '/admin/orders', label: 'Order Management', icon: <ShoppingBag size={20} /> },
-    { path: '/admin/revenue', label: 'Revenue & Payments', icon: <DollarSign size={20} /> },
-    { path: '/admin/reports', label: 'Reports & Insights', icon: <BarChart2 size={20} /> },
+    // { path: '/admin/revenue', label: 'Revenue & Payments', icon: <DollarSign size={20} /> },
+    // { path: '/admin/reports', label: 'Reports & Insights', icon: <BarChart2 sxize={20} /> },
   ];
   
   const isActive = (path) => {
@@ -47,13 +47,13 @@ const AdminLayout = () => {
         </div>
         
         <div className="flex items-center space-x-4">
-          <button className="relative text-gray-600 hover:text-gray-800">
+          {/* <button className="relative text-gray-600 hover:text-gray-800">
             <Bell size={20} />
             <span className="absolute top-0 right-0 h-2 w-2 rounded-full bg-red-500"></span>
           </button>
           <button className="text-gray-600 hover:text-gray-800">
             <Settings size={20} />
-          </button>
+          </button> */}
           <div className="flex items-center">
             <div className="h-8 w-8 rounded-full bg-indigo-600 flex items-center justify-center text-white font-medium">
               A

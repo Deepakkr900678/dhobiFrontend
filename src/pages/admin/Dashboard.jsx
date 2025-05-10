@@ -59,27 +59,27 @@ const Dashboard = () => {
       icon: <ShoppingBag size={20} className="text-white" />,
       bgColor: 'bg-blue-600' 
     },
-    { 
-      title: 'Revenue (MTD)',
-      value: '₹29,850',
-      change: '+23%',
-      icon: <DollarSign size={20} className="text-white" />,
-      bgColor: 'bg-amber-500' 
-    },
-    { 
-      title: 'Pending Approvals',
-      value: '12',
-      change: '-',
-      icon: <Clock size={20} className="text-white" />,
-      bgColor: 'bg-purple-600' 
-    },
-    { 
-      title: 'Active Disputes',
-      value: '4',
-      change: '-',
-      icon: <AlertTriangle size={20} className="text-white" />,
-      bgColor: 'bg-red-600' 
-    },
+    // { 
+    //   title: 'Revenue (MTD)',
+    //   value: '₹29,850',
+    //   change: '+23%',
+    //   icon: <DollarSign size={20} className="text-white" />,
+    //   bgColor: 'bg-amber-500' 
+    // },
+    // { 
+    //   title: 'Pending Approvals',
+    //   value: '12',
+    //   change: '-',
+    //   icon: <Clock size={20} className="text-white" />,
+    //   bgColor: 'bg-purple-600' 
+    // },
+    // { 
+    //   title: 'Active Disputes',
+    //   value: '4',
+    //   change: '-',
+    //   icon: <AlertTriangle size={20} className="text-white" />,
+    //   bgColor: 'bg-red-600' 
+    // },
   ];
 
   // Recent order data
@@ -188,8 +188,7 @@ const Dashboard = () => {
       </div>
 
       {/* Charts */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mt-6">
-        {/* Revenue Trend */}
+      {/* <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mt-6">
         <div className="card">
           <h3 className="text-lg font-semibold text-gray-800 mb-4">Revenue Trend</h3>
           <div className="h-80">
@@ -214,7 +213,7 @@ const Dashboard = () => {
           </div>
         </div>
 
-        {/* Order Status Distribution */}
+      
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           <div className="card">
             <h3 className="text-lg font-semibold text-gray-800 mb-4">Order Status</h3>
@@ -260,7 +259,7 @@ const Dashboard = () => {
             </div>
           </div>
         </div>
-      </div>
+      </div> */}
 
       {/* Recent Orders */}
       <div className="card">
