@@ -17,7 +17,7 @@ const Login = () => {
     // For demo purposes, we'll just check for admin@dhobi.com / admin123
     setTimeout(() => {
       if (email === 'admin@dhobi.com' && password === 'admin123') {
-        localStorage.setItem('admin_token', 'demo-token-12345');
+        localStorage.setItem('token', 'demo-token-12345');
         navigate('/admin');
       } else {
         setError('Invalid email or password');
