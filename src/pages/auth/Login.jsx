@@ -1,42 +1,55 @@
-import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { Lock, Mail, AlertCircle } from 'lucide-react';
+import React, { useState } from "react";
+import axios from "axios";
+import { useNavigate } from "react-router-dom";
+import { Lock, Mail, AlertCircle } from "lucide-react";
 
 const Login = () => {
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
-  const [error, setError] = useState('');
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    setError('');
+    setError("");
     setLoading(true);
-    
-    // For demo purposes, we'll just check for admin@dhobi.com / admin123
-    setTimeout(() => {
-      if (email === 'admin@dhobi.com' && password === 'admin123') {
-        localStorage.setItem('token', 'demo-token-12345');
-        navigate('/admin');
+
+    try {
+      const response = await axios.post(
+        `${import.meta.env.VITE_APP_BASE_URL}/auth/login`,
+        {
+          email,
+          password,
+        }
+      );
+
+      const { token, user } = response.data;
+      localStorage.setItem("token", token);
+      localStorage.setItem("user", JSON.stringify(user));
+      navigate("/admin");
+    } catch (err) {
+      if (err.response && err.response.data && err.response.data.message) {
+        setError(err.response.data.message);
       } else {
-        setError('Invalid email or password');
+        setError("An error occurred. Please try again.");
       }
+    } finally {
       setLoading(false);
-    }, 1000);
+    }
   };
 
   return (
     <div>
       <h3 className="text-lg font-medium text-center mb-6">Admin Login</h3>
-      
+
       {error && (
         <div className="mb-4 bg-red-50 border border-red-200 rounded-md p-3 flex items-center">
           <AlertCircle size={16} className="text-red-500 mr-2" />
           <span className="text-red-700 text-sm">{error}</span>
         </div>
       )}
-      
+
       <form onSubmit={handleSubmit} className="space-y-5">
         <div>
           <label htmlFor="email" className="form-label">
@@ -88,13 +101,19 @@ const Login = () => {
               type="checkbox"
               className="h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300 rounded"
             />
-            <label htmlFor="remember-me" className="ml-2 block text-sm text-gray-700">
+            <label
+              htmlFor="remember-me"
+              className="ml-2 block text-sm text-gray-700"
+            >
               Remember me
             </label>
           </div>
 
           <div className="text-sm">
-            <a href="#" className="font-medium text-indigo-600 hover:text-indigo-500">
+            <a
+              href="#"
+              className="font-medium text-indigo-600 hover:text-indigo-500"
+            >
               Forgot password?
             </a>
           </div>
@@ -106,11 +125,11 @@ const Login = () => {
             disabled={loading}
             className="btn btn-primary w-full flex justify-center"
           >
-            {loading ? 'Signing in...' : 'Sign in'}
+            {loading ? "Signing in..." : "Sign in"}
           </button>
         </div>
       </form>
-      
+
       <div className="mt-6 text-center">
         <p className="text-xs text-gray-500">
           Demo credentials: admin@dhobi.com / admin123

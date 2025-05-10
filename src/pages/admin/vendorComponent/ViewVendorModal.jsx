@@ -1,0 +1,222 @@
+import React, { useState } from "react";
+import {
+  
+  Edit,
+  Trash2,
+  CheckCircle,
+  XCircle,
+  MapPin,
+  Phone,
+  Mail,
+  AlertCircle,
+  
+} from "lucide-react";
+// Component for viewing vendor details
+const ViewVendorModal = ({
+  vendor,
+  onClose,
+  onEdit,
+  onSuspend,
+  onActivate,
+  onDelete,
+}) => {
+  if (!vendor) return null;
+
+  const getStatusBadgeClass = (status) => {
+    switch (status) {
+      case "Active":
+        return "bg-green-100 text-green-800 px-2.5 py-0.5 rounded-full text-xs font-medium";
+      case "Pending":
+        return "bg-yellow-100 text-yellow-800 px-2.5 py-0.5 rounded-full text-xs font-medium";
+      case "Suspended":
+        return "bg-red-100 text-red-800 px-2.5 py-0.5 rounded-full text-xs font-medium";
+      default:
+        return "bg-gray-100 text-gray-800 px-2.5 py-0.5 rounded-full text-xs font-medium";
+    }
+  };
+
+  return (
+    <div className="fixed inset-0 backdrop-blur-sm bg-opacity-50 flex items-center justify-center z-20">
+      <div className="bg-white rounded-lg shadow-xl w-full max-w-3xl max-h-[90vh] overflow-y-auto">
+        <div className="border-b border-gray-200 px-6 py-4 flex justify-between items-center sticky top-0 bg-white z-10">
+          <h3 className="text-lg font-semibold text-gray-900">
+            Vendor Details
+          </h3>
+          <button
+            onClick={onClose}
+            className="text-gray-400 hover:text-gray-500"
+          >
+            <XCircle size={20} />
+          </button>
+        </div>
+
+        <div className="p-6">
+          <div className="flex items-center justify-between mb-6">
+            <div>
+              <h2 className="text-xl font-bold text-gray-900">{vendor.name}</h2>
+              <p className="text-sm text-gray-500">ID: {vendor.id}</p>
+            </div>
+            <span className={getStatusBadgeClass(vendor.status)}>
+              {vendor.status}
+            </span>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+            <div>
+              <h4 className="text-sm font-medium text-gray-500 mb-2">
+                Owner Information
+              </h4>
+              <p className="text-sm font-medium text-gray-900">
+                {vendor.owner}
+              </p>
+              <div className="flex items-center text-sm text-gray-500 mt-1">
+                <Mail size={16} className="mr-1" />
+                {vendor.email}
+              </div>
+              <div className="flex items-center text-sm text-gray-500 mt-1">
+                <Phone size={16} className="mr-1" />
+                {vendor.phone}
+              </div>
+            </div>
+
+            <div>
+              <h4 className="text-sm font-medium text-gray-500 mb-2">
+                Business Information
+              </h4>
+              <div className="flex items-start text-sm text-gray-500">
+                <MapPin size={16} className="mr-1 mt-0.5 flex-shrink-0" />
+                <span>{vendor.address}</span>
+              </div>
+              <div className="mt-1 text-sm text-gray-500">
+                <span className="font-medium">Service Areas:</span>{" "}
+                {vendor.serviceAreas.join(", ")}
+              </div>
+              <div className="mt-1 text-sm text-gray-500">
+                <span className="font-medium">Commission Rate:</span>{" "}
+                {vendor.commissionRate}%
+              </div>
+            </div>
+          </div>
+
+          <div className="mb-6">
+            <h4 className="text-sm font-medium text-gray-500 mb-2">
+              Service & Pricing
+            </h4>
+            <div className="bg-gray-50 rounded-lg p-4">
+              <table className="min-w-full">
+                <thead>
+                  <tr>
+                    <th className="text-left text-xs font-medium text-gray-500 uppercase tracking-wider pb-2">
+                      Service
+                    </th>
+                    <th className="text-left text-xs font-medium text-gray-500 uppercase tracking-wider pb-2">
+                      Price
+                    </th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-gray-200">
+                  {vendor.services.map((service, index) => (
+                    <tr key={index}>
+                      <td className="py-2 text-sm font-medium text-gray-900">
+                        {service.name}
+                      </td>
+                      <td className="py-2 text-sm text-gray-500">
+                        {service.price}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+            <div className="bg-gray-50 rounded-lg p-4 text-center">
+              <div className="text-sm font-medium text-gray-500">Join Date</div>
+              <div className="mt-1 text-xl font-semibold text-gray-900">
+                {vendor.joinDate}
+              </div>
+            </div>
+
+            <div className="bg-gray-50 rounded-lg p-4 text-center">
+              <div className="text-sm font-medium text-gray-500">
+                Orders Completed
+              </div>
+              <div className="mt-1 text-xl font-semibold text-gray-900">
+                {vendor.ordersCompleted}
+              </div>
+            </div>
+
+            <div className="bg-gray-50 rounded-lg p-4 text-center">
+              <div className="text-sm font-medium text-gray-500">Rating</div>
+              <div className="mt-1 text-xl font-semibold text-gray-900">
+                {vendor.rating > 0 ? `${vendor.rating}/5.0` : "N/A"}
+              </div>
+            </div>
+          </div>
+
+          <div className="border-t border-gray-200 pt-4 mt-6 flex justify-between">
+            {vendor.status === "Pending" && (
+              <div className="flex space-x-2">
+                <button
+                  onClick={() => onActivate(vendor.id)}
+                  className="bg-green-600 text-white px-4 py-2 rounded-md hover:bg-green-700 flex items-center"
+                >
+                  <CheckCircle size={16} className="mr-2" />
+                  Approve Vendor
+                </button>
+                <button
+                  onClick={() => onDelete(vendor.id)}
+                  className="bg-red-600 text-white px-4 py-2 rounded-md hover:bg-red-700 flex items-center"
+                >
+                  <XCircle size={16} className="mr-2" />
+                  Reject
+                </button>
+              </div>
+            )}
+
+            {vendor.status === "Active" && (
+              <div className="flex space-x-2">
+                <button
+                  onClick={() => onEdit(vendor)}
+                  className="border border-gray-300 text-gray-700 px-4 py-2 rounded-md hover:bg-gray-50 flex items-center"
+                >
+                  <Edit size={16} className="mr-2" />
+                  Edit Details
+                </button>
+                <button
+                  onClick={() => onSuspend(vendor.id)}
+                  className="bg-red-600 text-white px-4 py-2 rounded-md hover:bg-red-700 flex items-center"
+                >
+                  <AlertCircle size={16} className="mr-2" />
+                  Suspend Vendor
+                </button>
+              </div>
+            )}
+
+            {vendor.status === "Suspended" && (
+              <div className="flex space-x-2">
+                <button
+                  onClick={() => onActivate(vendor.id)}
+                  className="bg-green-600 text-white px-4 py-2 rounded-md hover:bg-green-700 flex items-center"
+                >
+                  <CheckCircle size={16} className="mr-2" />
+                  Reactivate Vendor
+                </button>
+                <button
+                  onClick={() => onDelete(vendor.id)}
+                  className="bg-red-600 text-white px-4 py-2 rounded-md hover:bg-red-700 flex items-center"
+                >
+                  <Trash2 size={16} className="mr-2" />
+                  Delete Permanently
+                </button>
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+export default ViewVendorModal;
