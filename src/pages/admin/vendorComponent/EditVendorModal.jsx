@@ -1,18 +1,58 @@
-import React, { useState } from "react";
-import { XCircle } from "lucide-react";
+import React, { useEffect, useState } from "react";
+import { XCircle, AlertCircle, MapPin, Loader2 } from "lucide-react";
+import axios from "axios";
 
 // Component for editing vendor details
-const EditVendorModal = ({ vendor, onClose, onSave }) => {
+const EditVendorModal = ({ vendorId, onClose}) => {
+  const [vendor, setVendor] = useState({});
+
+  const fetchVendor = async () => {
+    try {
+      const res = await axios.get(
+        `${import.meta.env.VITE_APP_BASE_URL}/providers/profile/${vendorId}`
+      );
+      setVendor(res.data.provider);
+    } catch (error) {
+      console.error("Failed to fetch vendor:", error);
+    }
+  };
+
+  useEffect(() => {
+    fetchVendor();
+  }, [vendorId]);
+
   const [formData, setFormData] = useState({
-    name: vendor.name,
-    owner: vendor.owner,
-    email: vendor.email,
-    phone: vendor.phone,
-    address: vendor.address,
-    serviceAreas: vendor.serviceAreas.join(", "),
-    commissionRate: vendor.commissionRate,
-    services: [...vendor.services],
+    name: "",
+    owner: "",
+    email: "",
+    phone: "",
+    address: "",
+    serviceAreas: "",
+    commissionRate: "",
+    services: [],
+    location: { type: "Point", coordinates: [] },
   });
+
+  useEffect(() => {
+    if (vendor && Object.keys(vendor).length > 0) {
+      setFormData({
+        name: vendor.name || "",
+        owner: vendor.owner || "",
+        email: vendor.email || "",
+        phone: vendor.phone || "",
+        address: vendor.address || "",
+        serviceAreas: vendor.serviceAreas,
+        commissionRate: vendor.commissionRate || "",
+        services: vendor.services || [],
+        location: vendor.location || { type: "Point", coordinates: [] },
+      });
+    }
+  }, [vendor]);
+
+  const [errors, setErrors] = useState({});
+  const [isLoadingLocation, setIsLoadingLocation] = useState(false);
+
+  const [locationStatus, setLocationStatus] = useState("");
 
   const [serviceItem, setServiceItem] = useState({ name: "", price: "" });
 
@@ -50,11 +90,96 @@ const EditVendorModal = ({ vendor, onClose, onSave }) => {
     const updatedVendor = {
       ...vendor,
       ...formData,
-      serviceAreas: formData.serviceAreas.split(",").map((area) => area.trim()),
+      serviceAreas: formData.serviceAreas,
     };
 
-    // Call the onSave function passed from parent
-    onSave(updatedVendor);
+    const res = axios.patch(
+      `${import.meta.env.VITE_APP_BASE_URL}/providers/profile/${vendorId}`,
+      updatedVendor
+    );
+
+    console.log("Updated vendor data:", res);
+    res
+      .then((response) => {
+        console.log("Vendor updated successfully:", response.data);
+      })
+      .catch((error) => {
+        console.error("Failed to update vendor:", error);
+        setErrors({ ...errors, form: "Failed to update vendor." });
+      });
+  };
+
+  const getGeolocation = () => {
+    setIsLoadingLocation(true);
+    setLocationStatus("Detecting your location...");
+
+    if (navigator.geolocation) {
+      navigator.geolocation.getCurrentPosition(
+        (position) => {
+          const { latitude, longitude } = position.coords;
+
+          fetch(
+            `https://nominatim.openstreetmap.org/reverse?format=json&lat=${latitude}&lon=${longitude}`
+          )
+            .then((res) => res.json())
+            .then((data) => {
+              const locationName =
+                data.display_name ||
+                `${latitude.toFixed(4)}, ${longitude.toFixed(4)}`;
+
+              setFormData((prev) => ({
+                ...prev,
+                serviceAreas: locationName,
+                location: {
+                  type: "Point",
+                  coordinates: [longitude, latitude],
+                },
+              }));
+
+              setLocationStatus("Location detected successfully!");
+              setIsLoadingLocation(false);
+
+              if (errors.serviceAreas) {
+                setErrors((prev) => ({ ...prev, serviceAreas: null }));
+              }
+            })
+            .catch((err) => {
+              console.error("Reverse geocoding failed:", err);
+              setFormData((prev) => ({
+                ...prev,
+                serviceAreas: `${latitude.toFixed(4)}, ${longitude.toFixed(4)}`,
+                location: {
+                  type: "Point",
+                  coordinates: [longitude, latitude],
+                },
+              }));
+              setLocationStatus(
+                "Coordinates saved, but couldn't get full address."
+              );
+              setIsLoadingLocation(false);
+            });
+        },
+        (error) => {
+          console.error("Geolocation error:", error);
+          let message = "Failed to get your location.";
+          if (error.code === 1) message = "Permission denied.";
+          else if (error.code === 2) message = "Location unavailable.";
+          else if (error.code === 3) message = "Request timed out.";
+
+          setLocationStatus(message);
+          setIsLoadingLocation(false);
+          setErrors((prev) => ({ ...prev, serviceAreas: message }));
+        },
+        { enableHighAccuracy: true, timeout: 15000, maximumAge: 0 }
+      );
+    } else {
+      setLocationStatus("Geolocation is not supported by this browser.");
+      setIsLoadingLocation(false);
+      setErrors((prev) => ({
+        ...prev,
+        serviceAreas: "Geolocation not supported by your browser.",
+      }));
+    }
   };
 
   return (
@@ -112,24 +237,31 @@ const EditVendorModal = ({ vendor, onClose, onSave }) => {
                   required
                 />
               </div>
-
-              <div className="mb-4">
-                <label
-                  htmlFor="serviceAreas"
-                  className="block text-sm font-medium text-gray-700 mb-1"
-                >
-                  Service Areas *
-                </label>
+              <div className="flex items-center">
                 <input
                   type="text"
                   id="serviceAreas"
                   name="serviceAreas"
                   value={formData.serviceAreas}
                   onChange={handleChange}
-                  className="block w-full rounded-md border border-gray-300 shadow-sm p-2 focus:border-indigo-500 focus:ring focus:ring-indigo-200"
-                  placeholder="Manhattan, Brooklyn, Queens (comma separated)"
+                  className={`block w-full rounded-md border ${
+                    errors.serviceAreas ? "border-red-300" : "border-gray-300"
+                  } shadow-sm p-2 focus:border-indigo-500 focus:ring focus:ring-indigo-200`}
+                  placeholder="Use current location or enter manually"
                   required
                 />
+                <button
+                  type="button"
+                  onClick={getGeolocation}
+                  className="ml-2 p-2 rounded-md bg-indigo-50 text-indigo-600 hover:bg-indigo-100 flex items-center justify-center"
+                  disabled={isLoadingLocation}
+                >
+                  {isLoadingLocation ? (
+                    <Loader2 size={20} className="animate-spin" />
+                  ) : (
+                    <MapPin size={20} />
+                  )}
+                </button>
               </div>
 
               <div className="mb-4">

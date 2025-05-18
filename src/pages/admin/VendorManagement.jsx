@@ -7,8 +7,8 @@ import EditVendorModal from "./vendorComponent/EditVendorModal";
 import ViewVendorModal from "./vendorComponent/ViewVendorModal";
 
 // API base URL from environment variables
-const API_BASE_URL = import.meta.env.VITE_APP_BASE_URL || "http://localhost:4500/api";
-
+const API_BASE_URL =
+  import.meta.env.VITE_APP_BASE_URL || "http://localhost:4500/api";
 
 // Main Vendor Management component
 const VendorManagement = () => {
@@ -20,10 +20,10 @@ const VendorManagement = () => {
     growthRate: {
       total: 0,
       active: 0,
-      suspended: 0
-    }
+      suspended: 0,
+    },
   });
-  
+
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState(null);
   const [searchQuery, setSearchQuery] = useState("");
@@ -38,9 +38,9 @@ const VendorManagement = () => {
     setIsLoading(true);
     try {
       const response = await axios.get(`${API_BASE_URL}/providers`);
-      
+
       // Transform API data to match our UI format
-      const transformedVendors = response.data.providers.map(provider => ({
+      const transformedVendors = response.data.providers.map((provider) => ({
         id: provider._id,
         name: provider.businessName,
         owner: provider.userId, // Consider fetching user details separately if needed
@@ -48,16 +48,16 @@ const VendorManagement = () => {
         phone: provider.phone || "N/A",
         address: provider.address || "N/A",
         serviceAreas: provider.serviceAreas || [],
-        status: provider.isActive === "true" ? "Active" : "Suspended",
+        status: provider.isActive === true? "Active" : "Suspended",
         commissionRate: 15, // You might want to store this in your schema
         joinDate: new Date(provider.createdAt).toISOString().split("T")[0],
         ordersCompleted: provider.ordersCompleted || 0,
         rating: provider.rating || 0,
-        services: parseServices(provider)
+        services: parseServices(provider),
       }));
-      
+
       setVendors(transformedVendors);
-      
+
       // Calculate statistics
       calculateStats(transformedVendors);
     } catch (err) {
@@ -71,7 +71,7 @@ const VendorManagement = () => {
   // Helper function to parse services from provider data
   const parseServices = (provider) => {
     if (!provider.pricing) return [];
-    
+
     const services = [];
     // Convert pricing object to services array
     if (provider.pricing.shirt) {
@@ -81,16 +81,16 @@ const VendorManagement = () => {
       services.push({ name: "Trouser", price: `₹${provider.pricing.trouser}` });
     }
     // Add more services as needed
-    
+
     return services;
   };
 
   // Calculate statistics from vendor data
   const calculateStats = (vendorData) => {
     const total = vendorData.length;
-    const active = vendorData.filter(v => v.status === "Active").length;
-    const suspended = vendorData.filter(v => v.status === "Suspended").length;
-    
+    const active = vendorData.filter((v) => v.status === "Active").length;
+    const suspended = vendorData.filter((v) => v.status === "Suspended").length;
+
     // Set stats
     setStats({
       total,
@@ -99,8 +99,8 @@ const VendorManagement = () => {
       growthRate: {
         total: 12, // These would ideally come from historical data comparison
         active: 5,
-        suspended: 0
-      }
+        suspended: 0,
+      },
     });
   };
 
@@ -108,14 +108,14 @@ const VendorManagement = () => {
   useEffect(() => {
     fetchVendors();
   }, []);
-
-  // Filter vendors based on search query and status filter
   const filteredVendors = vendors.filter((vendor) => {
+    const query = searchQuery.toLowerCase();
+
     const matchesQuery =
-      vendor.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      vendor.id.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      (vendor.owner && vendor.owner.toLowerCase().includes(searchQuery.toLowerCase())) ||
-      (vendor.email && vendor.email.toLowerCase().includes(searchQuery.toLowerCase()));
+      vendor.name?.toLowerCase().includes(query) ||
+      vendor.id?.toLowerCase().includes(query) ||
+      vendor.owner?.toLowerCase().includes(query) ||
+      vendor.email?.toLowerCase().includes(query);
 
     const matchesStatus =
       statusFilter === "All" || vendor.status === statusFilter;
@@ -136,37 +136,43 @@ const VendorManagement = () => {
     setIsEditModalOpen(true);
   };
 
+
+
+  console.log("Vendors:", selectedVendor);
   // Handler for saving edited vendor
   const handleSaveVendor = async (updatedVendor) => {
     try {
       // Transform vendor data to match API format
       const vendorData = {
-        businessName: updatedVendor.name,
+        name: updatedVendor.name,
         userId: updatedVendor.owner,
         email: updatedVendor.email,
         phone: updatedVendor.phone,
         address: updatedVendor.address,
         serviceAreas: updatedVendor.serviceAreas,
         isActive: updatedVendor.status === "Active" ? "true" : "false",
-        pricing: {}
+        pricing: {},
       };
-      
+
       // Convert services to pricing object
-      updatedVendor.services.forEach(service => {
+      updatedVendor.services.forEach((service) => {
         const serviceName = service.name.toLowerCase();
-        const price = parseFloat(service.price.replace(/[^0-9.]/g, ''));
+        const price = parseFloat(service.price.replace(/[^0-9.]/g, ""));
         vendorData.pricing[serviceName] = price;
       });
-      
-      await axios.put(`${API_BASE_URL}/providers/${updatedVendor.id}`, vendorData);
-      
+
+      await axios.patch(
+        `${API_BASE_URL}/providers/${updatedVendor.id}`,
+        vendorData
+      );
+
       // Update local state
-      setVendors(prevVendors =>
-        prevVendors.map(vendor =>
+      setVendors((prevVendors) =>
+        prevVendors.map((vendor) =>
           vendor.id === updatedVendor.id ? updatedVendor : vendor
         )
       );
-      
+
       setIsEditModalOpen(false);
       // Refresh vendor list to get latest data
       fetchVendors();
@@ -179,16 +185,16 @@ const VendorManagement = () => {
   // Handler for activating vendor
   const handleActivateVendor = async (vendorId) => {
     try {
-      await axios.patch(`${API_BASE_URL}/providers/${vendorId}/status`, {
-        isActive: "true"
+      await axios.patch(`${API_BASE_URL}/providers/profile-active/${vendorId}`, {
+        isApproved: "approved",
       });
-      
-      setVendors(prevVendors =>
-        prevVendors.map(vendor =>
+
+      setVendors((prevVendors) =>
+        prevVendors.map((vendor) =>
           vendor.id === vendorId ? { ...vendor, status: "Active" } : vendor
         )
       );
-      
+
       setIsViewModalOpen(false);
       fetchVendors(); // Refresh data
     } catch (err) {
@@ -201,15 +207,15 @@ const VendorManagement = () => {
   const handleSuspendVendor = async (vendorId) => {
     try {
       await axios.patch(`${API_BASE_URL}/providers/${vendorId}/status`, {
-        isActive: "false"
+        isActive: "false",
       });
-      
-      setVendors(prevVendors =>
-        prevVendors.map(vendor =>
+
+      setVendors((prevVendors) =>
+        prevVendors.map((vendor) =>
           vendor.id === vendorId ? { ...vendor, status: "Suspended" } : vendor
         )
       );
-      
+
       setIsViewModalOpen(false);
       fetchVendors(); // Refresh data
     } catch (err) {
@@ -222,11 +228,11 @@ const VendorManagement = () => {
   const handleDeleteVendor = async (vendorId) => {
     try {
       await axios.delete(`${API_BASE_URL}/providers/${vendorId}`);
-      
-      setVendors(prevVendors =>
-        prevVendors.filter(vendor => vendor.id !== vendorId)
+
+      setVendors((prevVendors) =>
+        prevVendors.filter((vendor) => vendor.id !== vendorId)
       );
-      
+
       setIsViewModalOpen(false);
       fetchVendors(); // Refresh data
     } catch (err) {
@@ -238,36 +244,29 @@ const VendorManagement = () => {
   // Handler for adding new vendor
   const handleAddVendor = async (newVendor) => {
     try {
-      // Transform vendor data to match API format
-      const vendorData = {
-        businessName: newVendor.name,
-        userId: newVendor.owner, // This might need to be fetched differently
-        email: newVendor.email,
-        phone: newVendor.phone,
-        address: newVendor.address,
-        serviceAreas: newVendor.serviceAreas,
-        isApproved: "false",
-        isActive: "false",
-        pricing: {}
-      };
-      
+      // Initialize pricing as an empty object
+      newVendor.pricing = {};
+
       // Convert services to pricing object
-      newVendor.services.forEach(service => {
+      newVendor.services.forEach((service) => {
         const serviceName = service.name.toLowerCase();
-        const price = parseFloat(service.price.replace(/[^0-9.]/g, ''));
-        vendorData.pricing[serviceName] = price;
+        const price = parseFloat(service.price.replace(/[^0-9.]/g, ""));
+        newVendor.pricing[serviceName] = price;
       });
-      
-      const response = await axios.post(`${API_BASE_URL}/providers/create`, vendorData);
-      
+
+      const response = await axios.post(
+        `${API_BASE_URL}/providers/create`,
+        newVendor
+      );
+
       // Add the new vendor to state with API-generated ID
       const createdVendor = {
         ...newVendor,
-        id: response.data.provider._id
+        id: response.data.provider._id,
       };
-      
-      setVendors(prevVendors => [...prevVendors, createdVendor]);
-      
+
+      setVendors((prevVendors) => [...prevVendors, createdVendor]);
+
       // Refresh vendor list to get complete data
       fetchVendors();
     } catch (err) {
@@ -428,7 +427,7 @@ const VendorManagement = () => {
                           <tr
                             key={vendor.id}
                             className="hover:bg-gray-50 cursor-pointer"
-                            onClick={() => handleViewVendor(vendor)}
+                            onClick={() => handleViewVendor(vendor.id)}
                           >
                             <td className="whitespace-nowrap py-4 pl-4 pr-3 text-sm sm:pl-6 lg:pl-8">
                               <div className="flex items-center">
@@ -436,20 +435,27 @@ const VendorManagement = () => {
                                   <div className="font-medium text-gray-900">
                                     {vendor.name}
                                   </div>
-                                  <div className="text-gray-500">{vendor.id}</div>
+                                  <div className="text-gray-500">
+                                    {vendor.id}
+                                  </div>
                                 </div>
                               </div>
                             </td>
                             <td className="whitespace-nowrap px-3 py-4 text-sm text-gray-500">
-                              <div className="text-gray-900">{vendor.owner}</div>
-                              <div className="text-gray-500">{vendor.email}</div>
+                              <div className="text-gray-900">
+                                {vendor.owner}
+                              </div>
+                              <div className="text-gray-500">
+                                {vendor.email}
+                              </div>
                             </td>
                             <td className="whitespace-nowrap px-3 py-4 text-sm text-gray-500">
-                              {vendor.serviceAreas && vendor.serviceAreas.length > 0 
-                                ? vendor.serviceAreas.slice(0, 2).join(", ") + 
+                              {Array.isArray(vendor.serviceAreas)
+                                ? vendor.serviceAreas.slice(0, 2).join(", ") +
                                   (vendor.serviceAreas.length > 2 ? "..." : "")
-                                : "N/A"}
+                                : vendor.serviceAreas || "N/A"}
                             </td>
+
                             <td className="whitespace-nowrap px-3 py-4 text-sm">
                               <span
                                 className={
@@ -464,7 +470,9 @@ const VendorManagement = () => {
                               </span>
                             </td>
                             <td className="whitespace-nowrap px-3 py-4 text-sm text-gray-500">
-                              {vendor.rating > 0 ? `${vendor.rating}/5.0` : "N/A"}
+                              {vendor.rating > 0
+                                ? `${vendor.rating}/5.0`
+                                : "N/A"}
                             </td>
                             <td className="whitespace-nowrap px-3 py-4 text-sm text-gray-500">
                               {vendor.ordersCompleted || 0}
@@ -473,7 +481,7 @@ const VendorManagement = () => {
                               <button
                                 onClick={(e) => {
                                   e.stopPropagation();
-                                  handleViewVendor(vendor);
+                                  handleViewVendor(vendor.id);
                                 }}
                                 className="text-indigo-600 hover:text-indigo-900 mr-4"
                               >
@@ -484,12 +492,14 @@ const VendorManagement = () => {
                                 <button
                                   onClick={(e) => {
                                     e.stopPropagation();
-                                    handleEditVendor(vendor);
+                                    handleEditVendor(vendor.id);
                                   }}
                                   className="text-gray-600 hover:text-gray-900"
                                 >
                                   Edit
-                                  <span className="sr-only">, {vendor.name}</span>
+                                  <span className="sr-only">
+                                    , {vendor.name}
+                                  </span>
                                 </button>
                               )}
                             </td>
@@ -517,7 +527,7 @@ const VendorManagement = () => {
       {/* View Vendor Modal */}
       {isViewModalOpen && selectedVendor && (
         <ViewVendorModal
-          vendor={selectedVendor}
+          vendorId={selectedVendor}
           onClose={() => setIsViewModalOpen(false)}
           onEdit={handleEditVendor}
           onSuspend={handleSuspendVendor}
@@ -529,7 +539,7 @@ const VendorManagement = () => {
       {/* Edit Vendor Modal */}
       {isEditModalOpen && selectedVendor && (
         <EditVendorModal
-          vendor={selectedVendor}
+          vendorId={selectedVendor}
           onClose={() => setIsEditModalOpen(false)}
           onSave={handleSaveVendor}
         />

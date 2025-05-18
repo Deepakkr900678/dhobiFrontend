@@ -1,5 +1,5 @@
-import React, { useState } from "react";
-import { XCircle, AlertCircle } from "lucide-react";
+import React, { useState, useEffect } from "react";
+import { XCircle, AlertCircle, MapPin, Loader2 } from "lucide-react";
 
 // Component for adding a new vendor
 const AddVendorModal = ({ isOpen, onClose, onAddVendor }) => {
@@ -10,14 +10,24 @@ const AddVendorModal = ({ isOpen, onClose, onAddVendor }) => {
     phone: "",
     address: "",
     serviceAreas: "",
+    location: {
+      type: "Point",
+      coordinates: [0, 0] // [longitude, latitude]
+    },
     commissionRate: 15,
     services: [{ name: "Wash & Fold", price: "₹80/kg" }],
+    joinDate: new Date().toISOString().split("T")[0],
+    rating: 0,
+    isActive: true,
+    ordersCompleted: 0,
   });
 
   const [serviceItem, setServiceItem] = useState({ name: "", price: "" });
   const [errors, setErrors] = useState({});
   const [isSubmitting, setIsSubmitting] = useState(false);
-
+  const [isLoadingLocation, setIsLoadingLocation] = useState(false);
+  const [locationStatus, setLocationStatus] = useState("");
+  
   const handleChange = (e) => {
     const { name, value } = e.target;
     setFormData((prev) => ({ ...prev, [name]: value }));
@@ -25,6 +35,78 @@ const AddVendorModal = ({ isOpen, onClose, onAddVendor }) => {
     // Clear error when field is edited
     if (errors[name]) {
       setErrors((prev) => ({ ...prev, [name]: null }));
+    }
+  };
+
+  const getGeolocation = () => {
+    setIsLoadingLocation(true);
+    setLocationStatus("Detecting your location...");
+    
+    if (navigator.geolocation) {
+      navigator.geolocation.getCurrentPosition(
+        (position) => {
+          const { latitude, longitude } = position.coords;
+          
+          // Reverse geocoding to get address from coordinates
+          fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${latitude}&lon=${longitude}`)
+            .then(response => response.json())
+            .then(data => {
+              const locationName = data.display_name || `${latitude.toFixed(4)}, ${longitude.toFixed(4)}`;
+              
+              setFormData(prev => ({
+                ...prev,
+                serviceAreas: locationName,
+                location: {
+                  type: "Point",
+                  coordinates: [longitude, latitude] // MongoDB uses [longitude, latitude] format
+                }
+              }));
+              
+              setLocationStatus("Location detected successfully!");
+              setIsLoadingLocation(false);
+              
+              // Clear error if it exists
+              if (errors.serviceAreas) {
+                setErrors(prev => ({ ...prev, serviceAreas: null }));
+              }
+            })
+            .catch(error => {
+              console.error("Error getting location name:", error);
+              // Still save coordinates even if reverse geocoding fails
+              setFormData(prev => ({
+                ...prev,
+                serviceAreas: `${latitude.toFixed(4)}, ${longitude.toFixed(4)}`,
+                location: {
+                  type: "Point",
+                  coordinates: [longitude, latitude]
+                }
+              }));
+              setLocationStatus("Got coordinates, but couldn't get address.");
+              setIsLoadingLocation(false);
+            });
+        },
+        (error) => {
+          console.error("Error getting location:", error);
+          let errorMessage = "Failed to get your location.";
+          
+          if (error.code === 1) {
+            errorMessage = "Location access denied. Please enable location services.";
+          } else if (error.code === 2) {
+            errorMessage = "Location unavailable. Please try again.";
+          } else if (error.code === 3) {
+            errorMessage = "Location request timed out. Please try again.";
+          }
+          
+          setLocationStatus(errorMessage);
+          setIsLoadingLocation(false);
+          setErrors(prev => ({ ...prev, serviceAreas: errorMessage }));
+        },
+        { enableHighAccuracy: true, timeout: 15000, maximumAge: 0 }
+      );
+    } else {
+      setLocationStatus("Geolocation is not supported by this browser.");
+      setIsLoadingLocation(false);
+      setErrors(prev => ({ ...prev, serviceAreas: "Geolocation not supported by your browser." }));
     }
   };
 
@@ -96,6 +178,11 @@ const AddVendorModal = ({ isOpen, onClose, onAddVendor }) => {
       newErrors.services = "At least one service is required";
     }
 
+    // Location validation
+    if (formData.location.coordinates[0] === 0 && formData.location.coordinates[1] === 0) {
+      newErrors.location = "Valid location coordinates are required";
+    }
+
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
@@ -110,21 +197,8 @@ const AddVendorModal = ({ isOpen, onClose, onAddVendor }) => {
     setIsSubmitting(true);
 
     try {
-      // Create vendor object with form data
-      const newVendor = {
-        id: `V${Math.floor(1000 + Math.random() * 9000)}`, // This will be replaced by MongoDB _id
-        ...formData,
-        serviceAreas: formData.serviceAreas
-          .split(",")
-          .map((area) => area.trim()),
-        status: "Pending",
-        joinDate: new Date().toISOString().split("T")[0],
-        rating: 0,
-        ordersCompleted: 0,
-      };
-
       // Call the onAddVendor function passed from parent
-      await onAddVendor(newVendor);
+      await onAddVendor(formData);
 
       // Reset form and close modal
       setFormData({
@@ -134,6 +208,10 @@ const AddVendorModal = ({ isOpen, onClose, onAddVendor }) => {
         phone: "",
         address: "",
         serviceAreas: "",
+        location: {
+          type: "Point",
+          coordinates: [0, 0]
+        },
         commissionRate: 15,
         services: [{ name: "Wash & Fold", price: "₹80/kg" }],
       });
@@ -234,21 +312,45 @@ const AddVendorModal = ({ isOpen, onClose, onAddVendor }) => {
                 >
                   Service Areas *
                 </label>
-                <input
-                  type="text"
-                  id="serviceAreas"
-                  name="serviceAreas"
-                  value={formData.serviceAreas}
-                  onChange={handleChange}
-                  className={`block w-full rounded-md border ${
-                    errors.serviceAreas ? "border-red-300" : "border-gray-300"
-                  } shadow-sm p-2 focus:border-indigo-500 focus:ring focus:ring-indigo-200`}
-                  placeholder="Manhattan, Brooklyn, Queens (comma separated)"
-                  required
-                />
+                <div className="flex items-center">
+                  <input
+                    type="text"
+                    id="serviceAreas"
+                    name="serviceAreas"
+                    value={formData.serviceAreas}
+                    onChange={handleChange}
+                    className={`block w-full rounded-md border ${
+                      errors.serviceAreas ? "border-red-300" : "border-gray-300"
+                    } shadow-sm p-2 focus:border-indigo-500 focus:ring focus:ring-indigo-200`}
+                    placeholder="Use current location or enter manually"
+                    required
+                  />
+                  <button
+                    type="button"
+                    onClick={getGeolocation}
+                    className="ml-2 p-2 rounded-md bg-indigo-50 text-indigo-600 hover:bg-indigo-100 flex items-center justify-center"
+                    disabled={isLoadingLocation}
+                  >
+                    {isLoadingLocation ? (
+                      <Loader2 size={20} className="animate-spin" />
+                    ) : (
+                      <MapPin size={20} />
+                    )}
+                  </button>
+                </div>
+                {locationStatus && (
+                  <p className={`mt-1 text-sm ${isLoadingLocation || errors.serviceAreas ? 'text-yellow-600' : 'text-green-600'}`}>
+                    {locationStatus}
+                  </p>
+                )}
                 {errors.serviceAreas && (
                   <p className="mt-1 text-sm text-red-600">
                     {errors.serviceAreas}
+                  </p>
+                )}
+                {errors.location && (
+                  <p className="mt-1 text-sm text-red-600">
+                    {errors.location}
                   </p>
                 )}
               </div>
